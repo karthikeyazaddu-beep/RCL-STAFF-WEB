@@ -1,0 +1,712 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: RCL Staff Portal API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Discord OAuth authentication
+  - name: applications
+    description: Staff applications (join requests)
+  - name: staff
+    description: Staff members
+  - name: files
+    description: File management
+  - name: chat
+    description: AI chatbot
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /applications:
+    get:
+      operationId: listApplications
+      tags: [applications]
+      summary: List all pending applications (HICOM+ only)
+      responses:
+        "200":
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Application"
+    post:
+      operationId: submitApplication
+      tags: [applications]
+      summary: Submit a join request (authenticated Discord user)
+      responses:
+        "201":
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/my:
+    get:
+      operationId: getMyApplication
+      tags: [applications]
+      summary: Get the current user's own application status
+      responses:
+        "200":
+          description: Application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+        "404":
+          description: No application found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /applications/{id}/approve:
+    post:
+      operationId: approveApplication
+      tags: [applications]
+      summary: Approve an application and assign a role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalInput"
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/{id}/decline:
+    post:
+      operationId: declineApplication
+      tags: [applications]
+      summary: Decline an application
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Declined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/{id}/blacklist:
+    post:
+      operationId: blacklistApplicant
+      tags: [applications]
+      summary: Blacklist a Discord user for 10 days
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Blacklisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Application"
+
+  /applications/stats:
+    get:
+      operationId: getApplicationStats
+      tags: [applications]
+      summary: Get application statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationStats"
+
+  /staff:
+    get:
+      operationId: listStaff
+      tags: [staff]
+      summary: List all staff profiles
+      responses:
+        "200":
+          description: Staff list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaffProfile"
+    post:
+      operationId: createStaffProfile
+      tags: [staff]
+      summary: Create a staff profile (HICOM+ only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffProfileInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffProfile"
+
+  /staff/{id}:
+    get:
+      operationId: getStaffProfile
+      tags: [staff]
+      summary: Get a staff profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Staff profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateStaffProfile
+      tags: [staff]
+      summary: Update a staff profile (HICOM+ only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffProfile"
+    delete:
+      operationId: deleteStaffProfile
+      tags: [staff]
+      summary: Delete a staff profile (HICOM+ only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /staff/role/{userId}:
+    patch:
+      operationId: updateStaffRole
+      tags: [staff]
+      summary: Update a staff member's role (owner only for HICOM; HICOM+ for others)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffProfile"
+
+  /files:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List all uploaded files
+      responses:
+        "200":
+          description: Files list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FileRecord"
+
+  /files/{id}:
+    get:
+      operationId: getFile
+      tags: [files]
+      summary: Get file metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: File record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileRecord"
+    delete:
+      operationId: deleteFile
+      tags: [files]
+      summary: Delete a file (HICOM+ only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /files/{id}/download:
+    get:
+      operationId: downloadFile
+      tags: [files]
+      summary: Download/open a file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /bot-context:
+    get:
+      operationId: listBotContext
+      tags: [chat]
+      summary: List all AI context entries (owner only)
+      responses:
+        "200":
+          description: Context entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BotContextEntry"
+    post:
+      operationId: createBotContext
+      tags: [chat]
+      summary: Create a new AI context entry (owner only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotContextInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotContextEntry"
+
+  /bot-context/{id}:
+    patch:
+      operationId: updateBotContext
+      tags: [chat]
+      summary: Update an AI context entry (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotContextInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotContextEntry"
+    delete:
+      operationId: deleteBotContext
+      tags: [chat]
+      summary: Delete an AI context entry (owner only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /chat/message:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message to the AI chatbot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+
+  /chat/history:
+    get:
+      operationId: getChatHistory
+      tags: [chat]
+      summary: Get recent chat history for the current user
+      responses:
+        "200":
+          description: Chat history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    User:
+      type: object
+      required: [discordId, username, avatar, role, status]
+      properties:
+        discordId:
+          type: string
+        username:
+          type: string
+        discriminator:
+          type: ["string", "null"]
+        avatar:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [owner, hicom, head_mod, senior_mod, moderator, trial_mod, pending, none]
+        status:
+          type: string
+          enum: [approved, pending, declined, blacklisted, none]
+        blacklistedUntil:
+          type: ["string", "null"]
+
+    Application:
+      type: object
+      required: [id, discordId, username, avatar, status, createdAt]
+      properties:
+        id:
+          type: integer
+        discordId:
+          type: string
+        username:
+          type: string
+        discriminator:
+          type: ["string", "null"]
+        avatar:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, approved, declined, blacklisted]
+        role:
+          type: ["string", "null"]
+        blacklistedUntil:
+          type: ["string", "null"]
+        reviewedBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+
+    ApprovalInput:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [trial_mod, moderator, senior_mod, head_mod, hicom]
+
+    ApplicationStats:
+      type: object
+      required: [total, pending, approved, declined, blacklisted]
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        approved:
+          type: integer
+        declined:
+          type: integer
+        blacklisted:
+          type: integer
+
+    StaffProfile:
+      type: object
+      required: [id, discordId, username, role, createdAt]
+      properties:
+        id:
+          type: integer
+        discordId:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: ["string", "null"]
+        timezone:
+          type: ["string", "null"]
+        about:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [hicom, head_mod, senior_mod, moderator, trial_mod]
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+
+    StaffProfileInput:
+      type: object
+      required: [discordId, username, role]
+      properties:
+        discordId:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: ["string", "null"]
+        timezone:
+          type: ["string", "null"]
+        about:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [hicom, head_mod, senior_mod, moderator, trial_mod]
+
+    StaffProfileUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+        avatar:
+          type: ["string", "null"]
+        timezone:
+          type: ["string", "null"]
+        about:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [hicom, head_mod, senior_mod, moderator, trial_mod]
+
+    RoleUpdate:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [hicom, head_mod, senior_mod, moderator, trial_mod]
+
+    FileRecord:
+      type: object
+      required: [id, name, mimeType, size, uploadedBy, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        originalName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        uploadedBy:
+          type: string
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ChatMessageInput:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    ChatResponse:
+      type: object
+      required: [reply, messageId]
+      properties:
+        reply:
+          type: string
+        messageId:
+          type: integer
+
+    BotContextEntry:
+      type: object
+      required: [id, title, content, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+
+    BotContextInput:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+
+    ChatMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        createdAt:
+          type: string
